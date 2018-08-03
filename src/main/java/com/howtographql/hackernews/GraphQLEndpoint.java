@@ -1,6 +1,8 @@
 package com.howtographql.hackernews;
 
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import com.coxautodev.graphql.tools.SchemaParser;
 import javax.servlet.annotation.WebServlet;
@@ -9,6 +11,8 @@ import javax.servlet.http.HttpServletResponse;
 
 import com.mongodb.MongoClient;
 import com.mongodb.client.MongoDatabase;
+import graphql.ExceptionWhileDataFetching;
+import graphql.GraphQLError;
 import graphql.schema.GraphQLSchema;
 import graphql.servlet.GraphQLContext;
 import graphql.servlet.SimpleGraphQLServlet;
@@ -57,5 +61,13 @@ public class GraphQLEndpoint extends SimpleGraphQLServlet {
 				.map(userRepository::findById)
 				.orElse(null);
 		return new AuthContext(user, request, response);
+	}
+
+	@Override
+	protected List<GraphQLError> filterGraphQLErrors(List<GraphQLError> errors) {
+		return errors.stream()
+				.filter(e -> e instanceof ExceptionWhileDataFetching || super.isClientError(e))
+				.map(e -> e instanceof ExceptionWhileDataFetching ? new SanitizedError((ExceptionWhileDataFetching) e) : e)
+				.collect(Collectors.toList());
 	}
 }
