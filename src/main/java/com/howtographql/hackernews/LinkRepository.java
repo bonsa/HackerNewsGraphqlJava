@@ -28,20 +28,13 @@ public class LinkRepository {
 		return link(doc);
 	}
 
-	public List<Link> getAllLinks(LinkFilter filter) {
+	public List<Link> getAllLinks(LinkFilter filter, int skip, int first) {
 		Optional<Bson> mongoFilter = Optional.ofNullable(filter).map(this::buildFilter);
 
-		Optional<FindIterable<Document>> documents = mongoFilter.map(links::find);
-
 		List<Link> allLinks = new ArrayList<>();
-		for (Document doc : links.find()) {
-			Link link = new Link(
-					doc.get("_id").toString(),
-					doc.getString("url"),
-					doc.getString("description"),
-					doc.getString("postedBy")
-			);
-			allLinks.add(link);
+		FindIterable<Document> documents = mongoFilter.map(links::find).orElseGet(links::find);
+		for (Document doc : documents.skip(skip).limit(first)) {
+			allLinks.add(link(doc));
 		}
 		return allLinks;
 	}
@@ -76,6 +69,7 @@ public class LinkRepository {
 		return new Link(
 				doc.get("_id").toString(),
 				doc.getString("url"),
-				doc.getString("description"));
+				doc.getString("description"),
+				doc.getString("postedBy"));
 	}
 }
